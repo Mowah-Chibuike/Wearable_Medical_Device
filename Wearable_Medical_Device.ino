@@ -1,10 +1,8 @@
 #include "medic_device.h"
 
-
 #define I2C_SDA 8
 #define I2C_SCL 9
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
-
 
 Adafruit_MPU6050 mpu;
 MAX30105 particleSensor;
@@ -20,58 +18,58 @@ unsigned long lastStepTime = 0;
 #define THRESHOLD 9.8
 
 // Get readings from temperature sensor
-// void handleTemperature(void *pvParameters) {
+void handleTemperature(void *pvParameters) {
 
-//   while (1) { 
-//     tempReading = mlx.readObjectTempC();
-//     Serial.print("Object = ");
-//     Serial.print(tempReading);
-//     Serial.println("*C");
+  while (1) { 
+    tempReading = mlx.readObjectTempC();
+    Serial.print("Object = ");
+    Serial.print(tempReading);
+    Serial.println("*C");
 
-//     vTaskDelay(2000 / portTICK_PERIOD_MS);
-//   }
-// }
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+  }
+}
 
 //Get readings from accelerometer and count the number of steps
-// void countSteps(void *pvParameters) {
-//   sensors_event_t a, g, temp;
-//   float ax, ay, az, alpha = 0.2;
-//   float magA, filtA = 0;
+void countSteps(void *pvParameters) {
+  sensors_event_t a, g, temp;
+  float ax, ay, az, alpha = 0.2;
+  float magA, filtA = 0;
 
-//   while (1) {
-//     mpu.getEvent(&a, &g, &temp);
+  while (1) {
+    mpu.getEvent(&a, &g, &temp);
 
-//     ax = a.acceleration.x;
-//     ay = a.acceleration.y;
-//     az = a.acceleration.z;
+    ax = a.acceleration.x;
+    ay = a.acceleration.y;
+    az = a.acceleration.z;
 
-//     Serial.print("Acceleration X: ");
-//       Serial.print(a.acceleration.x);
-//       Serial.print(", Y: ");
-//       Serial.print(a.acceleration.y);
-//       Serial.print(", Z: ");
-//       Serial.print(a.acceleration.z);
-//       Serial.println(" m/s^2");
+    Serial.print("Acceleration X: ");
+      Serial.print(a.acceleration.x);
+      Serial.print(", Y: ");
+      Serial.print(a.acceleration.y);
+      Serial.print(", Z: ");
+      Serial.print(a.acceleration.z);
+      Serial.println(" m/s^2");
 
-//     magA = sqrt(ax * ax + ay * ay);
+    magA = sqrt(ax * ax + ay * ay);
 
-//     // filter
+    // filter
 
-//     unsigned long now = millis();
-//     if ((magA > THRESHOLD) && (now - lastStepTime) > STEP_DELAY) {
-//       stepCount++;
-//       lastStepTime = now;
-//     }
+    unsigned long now = millis();
+    if ((magA > THRESHOLD) && (now - lastStepTime) > STEP_DELAY) {
+      stepCount++;
+      lastStepTime = now;
+    }
 
-//     Serial.print(now);
-//     Serial.print(",");
-//     Serial.print(filtA, 2);
-//     Serial.print(",");
-//     Serial.println(stepCount);
+    Serial.print(now);
+    Serial.print(",");
+    Serial.print(filtA, 2);
+    Serial.print(",");
+    Serial.println(stepCount);
 
-//     vTaskDelay(pdMS_TO_TICKS(5000));
-//   }
-// }
+    vTaskDelay(pdMS_TO_TICKS(5000));
+  }
+}
 
 // Get readings from the heart rate/oxygen level sensor and calculate the blood pressure
 void bloodPressure(void *pvParameters) {
@@ -127,58 +125,58 @@ void handleDisplay(void *pvParameters) {
 
 }
 
-// Connect to IoT platform adnd update the platform
-// void BlynkHandler(void *pvParameters) {
+//Connect to IoT platform adnd update the platform
+void BlynkHandler(void *pvParameters) {
 
-//   while (1) {
-//     if (Blynk.connected()) {
-//       Blynk.run();
+  while (1) {
+    if (Blynk.connected()) {
+      Blynk.run();
 
-//     } else {
-//       // Try reconnecting if not connected
-//       Blynk.connect();
-//     }
-//     vTaskDelay(2000 / portTICK_PERIOD_MS);
-//   }
-// }
+    } else {
+      // Try reconnecting if not connected
+      Blynk.connect();
+    }
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+  }
+}
 
-// void wifiBlynkManagerTask(void *pvParameters) {
-//   while (1) {
-//     // If WiFi is not connected, reconnect
-//     if (WiFi.status() != WL_CONNECTED) {
-//       Serial.println("[WiFi] Disconnected! Trying to reconnect...");
-//       WiFi.disconnect();
-//       WiFi.begin(ssid, pass);
+void wifiBlynkManagerTask(void *pvParameters) {
+  while (1) {
+    // If WiFi is not connected, reconnect
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("[WiFi] Disconnected! Trying to reconnect...");
+      WiFi.disconnect();
+      WiFi.begin(ssid, pass);
 
-//       // Wait for connection for up to 10 seconds
-//       int retries = 0;
-//       while (WiFi.status() != WL_CONNECTED && retries < 20) {
-//         vTaskDelay(500 / portTICK_PERIOD_MS);
-//         retries++;
-//         Serial.print(".");
-//       }
+      // Wait for connection for up to 10 seconds
+      int retries = 0;
+      while (WiFi.status() != WL_CONNECTED && retries < 20) {
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+        retries++;
+        Serial.print(".");
+      }
       
-//       if (WiFi.status() == WL_CONNECTED) {
-//         Serial.println("\n[WiFi] Reconnected successfully.");
-//       } else {
-//         Serial.println("\n[WiFi] Failed to reconnect.");
-//       }
-//     }
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("\n[WiFi] Reconnected successfully.");
+      } else {
+        Serial.println("\n[WiFi] Failed to reconnect.");
+      }
+    }
 
-//     // If WiFi is connected but Blynk is not connected
-//     if (WiFi.status() == WL_CONNECTED && !Blynk.connected()) {
-//       Serial.println("[Blynk] Disconnected! Trying to reconnect...");
-//       Blynk.connect();
-//       if (Blynk.connected()) {
-//         Serial.println("[Blynk] Reconnected successfully.");
-//       } else {
-//         Serial.println("[Blynk] Failed to reconnect.");
-//       }
-//     }
+    // If WiFi is connected but Blynk is not connected
+    if (WiFi.status() == WL_CONNECTED && !Blynk.connected()) {
+      Serial.println("[Blynk] Disconnected! Trying to reconnect...");
+      Blynk.connect();
+      if (Blynk.connected()) {
+        Serial.println("[Blynk] Reconnected successfully.");
+      } else {
+        Serial.println("[Blynk] Failed to reconnect.");
+      }
+    }
 
-//     vTaskDelay(5000 / portTICK_PERIOD_MS); // Check every 5 seconds
-//   }
-// }*/
+    vTaskDelay(5000 / portTICK_PERIOD_MS); // Check every 5 seconds
+  }
+}*/
 
 
 void setup() {
@@ -188,12 +186,12 @@ void setup() {
 
 
   Wire.begin(I2C_SDA, I2C_SCL);
-  // if (!mlx.begin()) {
-  //   Serial.println("Error connecting to MLX sensor. Check wiring.");
-  //   while (1);
-  // }
-  // Serial.print("Emissivity = "); Serial.println(mlx.readEmissivity());
-  // Serial.println("================================================");
+  if (!mlx.begin()) {
+    Serial.println("Error connecting to MLX sensor. Check wiring.");
+    while (1);
+  }
+  Serial.print("Emissivity = "); Serial.println(mlx.readEmissivity());
+  Serial.println("================================================");
 
   if (!particleSensor.begin(Wire, I2C_SPEED_STANDARD)) //Use default I2C port, 400kHz speed
   {
@@ -204,17 +202,31 @@ void setup() {
   particleSensor.setPulseAmplitudeRed(0x0A);
   particleSensor.setPulseAmplitudeIR(0x0A);
 
-  // if (!mpu.begin())
-  // {
-  //   Serial.println("Failed to initialize accelrometer!!!");
-  //   Serial.println("Check your connections!!!");
-  //   return;
-  // }
-  // Serial.println("MPU6050 Found! Accelerometer setup complete!");
-  // mpu.setAccelerometerRange(MPU6050_RANGE_4_G);
-  // Serial.println("Range Set!!");
+  if (!mpu.begin())
+  {
+    Serial.println("Failed to initialize accelrometer!!!");
+    Serial.println("Check your connections!!!");
+    return;
+  }
+  Serial.println("MPU6050 Found! Accelerometer setup complete!");
+  mpu.setAccelerometerRange(MPU6050_RANGE_4_G);
+  Serial.println("Range Set!!");
 
-  xTaskCreatePinnedToCore(bloodPressure, "count Steps", 4096, NULL, 1, NULL, 0);
+  WiFi.begin(ssid, pass);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConnected to WiFi");
+
+  Blynk.config(BLYNK_AUTH_TOKEN);
+  Blynk.connect();
+
+  xTaskCreatePinnedToCore(countSteps, "count Steps", 2048, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(handleTemperatue, "handleTemperature", 2048, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(bloodPressure, "Blood Pressure", 4096, NULL, 2, NULL, 0);
+  xTaskCreatePinnedToCore(BlynkHandler, "Blynk Handler", 8192, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(wifiBlynkManagerTask, "WiFiBlynkManager", 4096, NULL, 1, NULL, 1);
 }
 
 void loop() {

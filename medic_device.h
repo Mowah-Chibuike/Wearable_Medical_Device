@@ -1,11 +1,19 @@
 #ifndef _MEDIC_DEV_H
 #define _MEDIC_DEV_H
 
+#define BLYNK_TEMPLATE_ID "TMPL2qXw9ZLGR"
+#define BLYNK_TEMPLATE_NAME "Wearable Medical Device"
+#define BLYNK_AUTH_TOKEN "3cwZJDgxPtYjE-A8qdCcD2I9iRhYl0Ky"
+
+
 #include <Adafruit_MLX90614.h>
 #include <Adafruit_MPU6050.h>
 #include <Wire.h>
 #include "MAX30105.h"
 #include "spo2_algorithm.h"
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
 
 #define MAX_BRIGHTNESS 255
 #define ADC_RANGE 4096
@@ -27,5 +35,7 @@ int8_t validSPO2; //indicator to show if the SPO2 calculation is valid
 int32_t heartRate; //heart rate value
 int8_t validHeartRate; //indicator to show if the heart rate calculation is valid
 
+char ssid[] = "Timothy's A16";
+char pass[] = "nmg9h28vmhjth6m";
 
 #endif /* _MEDIC_DEV_H */
