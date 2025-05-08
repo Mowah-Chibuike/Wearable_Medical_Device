@@ -15,6 +15,8 @@
 #define SAMPLEAVERAGE 4
 #define LEDBRIGHTNESS 60
 
+#define BUFFER_LENGTH 100
+
 
 uint32_t irBuffer[100]; //infrared LED sensor data
 uint32_t redBuffer[100];  //red LED sensor data

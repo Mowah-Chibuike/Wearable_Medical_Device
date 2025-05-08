@@ -75,89 +75,51 @@ unsigned long lastStepTime = 0;
 
 // Get readings from the heart rate/oxygen level sensor and calculate the blood pressure
 void bloodPressure(void *pvParameters) {
-  //read the first 100 samples, and determine the signal range
+  // Sensor setup
+
+  Wire.begin(8, 9);
+  if (!particleSensor.begin(Wire, I2C_SPEED_STANDARD)) {
+    Serial.println("MAX30102 not found. Check wiring.");
+    vTaskDelete(NULL); // kill the task
+  }
+
+  particleSensor.setup(100, 4, 2, 100, 411, 4096); // sampleRate, avg, pulseWidth, LED power, etc.
+  particleSensor.setPulseAmplitudeRed(0x1F);
+  particleSensor.setPulseAmplitudeIR(0x1F);
+
   while (1) {
-  for (byte i = 0 ; i < bufferLength ; i++)
-  {
-    while (particleSensor.available() == false) //do we have new data?
-      particleSensor.check(); //Check the sensor for new data
+    // Collect 100 samples
+    int i = 0;
+    while (i < 100) {
+      if (particleSensor.available()) {
+        redBuffer[i] = particleSensor.getRed();
+        irBuffer[i] = particleSensor.getIR();
+        particleSensor.nextSample();
+        i++;
+      } else {
+        particleSensor.check(); // manually poll if necessary
+      }
+      vTaskDelay(pdMS_TO_TICKS(10)); // sample every 10ms → 100Hz
+    }
 
-    redBuffer[i] = particleSensor.getRed();
-    irBuffer[i] = particleSensor.getIR();
-    particleSensor.nextSample(); //We're finished with this sample so move to next sample
+    // Call Maxim algorithm
+    maxim_heart_rate_and_oxygen_saturation(irBuffer, 100,
+                                           redBuffer,
+                                           &spo2, &validSPO2,
+                                           &heartRate, &validHeartRate);
 
-    Serial.print(F("red="));
-    Serial.print(redBuffer[i], DEC);
-    Serial.print(F(", ir="));
-    Serial.println(irBuffer[i], DEC);
+    // Print results
+    if (validHeartRate && validSPO2) {
+      Serial.print("HR: "); Serial.print(heartRate);
+      Serial.print(" bpm | SpO2: "); Serial.print(spo2);
+      Serial.println(" %");
+    } else {
+      Serial.println("Invalid HR or SpO2 reading.");
+    }
 
-    
+    // Delay before next reading cycle
+    vTaskDelay(pdMS_TO_TICKS(2000));  // 2-second pause
   }
-
-  //calculate heart rate and SpO2 after first 100 samples (first 4 seconds of samples)
-  maxim_heart_rate_and_oxygen_saturation(irBuffer, bufferLength, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
-
-      Serial.print(F(", HR="));
-      Serial.print(heartRate);
-
-      Serial.print(F(", HRvalid="));
-      Serial.print(validHeartRate);
-
-      Serial.print(F(", SPO2="));
-      Serial.print(spo2);
-
-      Serial.print(F(", SPO2Valid="));
-      Serial.println(validSPO2);
-
-      vTaskDelay(1000 / portTICK_PERIOD_MS);
-  }
-  // //Continuously taking samples from MAX30102.  Heart rate and SpO2 are calculated every 1 second
-  // while (1)
-  // {
-  //   //dumping the first 25 sets of samples in the memory and shift the last 75 sets of samples to the top
-  //   for (byte i = 25; i < 100; i++)
-  //   {
-  //     redBuffer[i - 25] = redBuffer[i];
-  //     irBuffer[i - 25] = irBuffer[i];
-  //   }
-
-  //   //take 25 sets of samples before calculating the heart rate.
-  //   for (byte i = 75; i < 100; i++)
-  //   {
-  //     while (particleSensor.available() == false) //do we have new data?
-  //       particleSensor.check(); //Check the sensor for new data
-
-  //     redBuffer[i] = particleSensor.getRed();
-  //     irBuffer[i] = particleSensor.getIR();
-  //     particleSensor.nextSample(); //We're finished with this sample so move to next sample
-
-  //     //send samples and calculation result to terminal program through UART
-      // Serial.print(F("red="));
-      // Serial.print(redBuffer[i]);
-      // Serial.print(F(", ir="));
-      // Serial.print(irBuffer[i], DEC);
-
-      // Serial.print(F(", HR="));
-      // Serial.print(heartRate);
-
-      // Serial.print(F(", HRvalid="));
-      // Serial.print(validHeartRate);
-
-      // Serial.print(F(", SPO2="));
-      // Serial.print(spo2);
-
-      // Serial.print(F(", SPO2Valid="));
-      // Serial.println(validSPO2);
-  //   }
-
-  //   //After gathering 25 new samples recalculate HR and SP02
-  //   maxim_heart_rate_and_oxygen_saturation(irBuffer, bufferLength, redBuffer, &spo2, &validSPO2, &heartRate, &validHeartRate);
-  //   if (validSPO2) {
-  //     systolic = ((3.6 - 0.04 * spo2) / 0.012) + 60;
-  //     diastolic = ((3.4 - 0.04 * spo2) / 0.012 + 50);
-  //   }
-  //   vTaskDelay(pdMS_TO_TICKS(1000));
-  // }
 }
 
 // Display to the oLED screen
