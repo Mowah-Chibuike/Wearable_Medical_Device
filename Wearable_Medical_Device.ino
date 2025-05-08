@@ -17,6 +17,8 @@ unsigned long lastStepTime = 0;
 #define STEP_DELAY 250 //in ms
 #define THRESHOLD 9.8
 
+portMUX_TYPE taskMux = portMUX_INITIALIZER_UNLOCKED; 
+
 // Get readings from temperature sensor
 void handleTemperature(void *pvParameters) {
 
@@ -111,6 +113,10 @@ void bloodPressure(void *pvParameters) {
       Serial.print("HR: "); Serial.print(heartRate);
       Serial.print(" bpm | SpO2: "); Serial.print(spo2);
       Serial.println(" %");
+      portENTER_CRITICAL(&taskMux);
+      diastolic = ((3.6 - 0.04 * spo2) / 0.012) + 60;
+      systolic = ((3.4 - 0.04 * spo2) / 0.012) + 50;
+      portEXIT_CRITICAL(&taskMux);
     } else {
       Serial.println("Invalid HR or SpO2 reading.");
     }
@@ -131,7 +137,14 @@ void BlynkHandler(void *pvParameters) {
   while (1) {
     if (Blynk.connected()) {
       Blynk.run();
-
+      portENTER_CRITICAL(&taskMux);
+      Blynk.virtualWrite(V0, tempReading);
+      Blynk.virtualWrite(V1, heartRate);
+      Blynk.virtualWrite(V2, diastolic);
+      Blynk.virtualWrite(V3, systolic);
+      Blynk.virtualWrite(V4, stepCount);
+      Blynk.virtualWrite(V5, spo2);
+      portEXIT_CRITICAL(&taskMux);
     } else {
       // Try reconnecting if not connected
       Blynk.connect();
@@ -176,7 +189,7 @@ void wifiBlynkManagerTask(void *pvParameters) {
 
     vTaskDelay(5000 / portTICK_PERIOD_MS); // Check every 5 seconds
   }
-}*/
+}
 
 
 void setup() {
@@ -223,7 +236,7 @@ void setup() {
   Blynk.connect();
 
   xTaskCreatePinnedToCore(countSteps, "count Steps", 2048, NULL, 1, NULL, 1);
-  xTaskCreatePinnedToCore(handleTemperatue, "handleTemperature", 2048, NULL, 1, NULL, 1);
+  xTaskCreatePinnedToCore(handleTemperature, "handleTemperature", 2048, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(bloodPressure, "Blood Pressure", 4096, NULL, 2, NULL, 0);
   xTaskCreatePinnedToCore(BlynkHandler, "Blynk Handler", 8192, NULL, 1, NULL, 1);
   xTaskCreatePinnedToCore(wifiBlynkManagerTask, "WiFiBlynkManager", 4096, NULL, 1, NULL, 1);
